@@ -34,20 +34,21 @@ const namespace = "mongodb"
 
 // MongodbCollectorOpts is the options of the mongodb collector.
 type MongodbCollectorOpts struct {
-	URI                       string
-	CollectDatabaseMetrics    bool
-	CollectCollectionMetrics  bool
-	CollectTopMetrics         bool
-	CollectIndexUsageStats    bool
-	CollectConnPoolStats      bool
-	DBPoolLimit               int
-	CollectDatabaseCurrentOps bool
-	CollectDatabaseProfiler   bool
-	SocketTimeout             time.Duration
-	SyncTimeout               time.Duration
-	AuthentificationDB        string
-	DatabaseProfilerLookback  int64
-	DatabaseProfilerThreshold int64
+	URI                           string
+	CollectDatabaseMetrics        bool
+	CollectCollectionMetrics      bool
+	CollectTopMetrics             bool
+	CollectIndexUsageStats        bool
+	CollectConnPoolStats          bool
+	SuppressCollectShardingStatus bool
+	DBPoolLimit                   int
+	CollectDatabaseCurrentOps     bool
+	CollectDatabaseProfiler       bool
+	SocketTimeout                 time.Duration
+	SyncTimeout                   time.Duration
+	AuthentificationDB            string
+	DatabaseProfilerLookback      int64
+	DatabaseProfilerThreshold     int64
 }
 
 func (in *MongodbCollectorOpts) toSessionOps() *shared.MongoSessionOpts {
@@ -234,10 +235,12 @@ func (exporter *MongodbCollector) collectMongos(client *mongo.Client, ch chan<- 
 		serverStatus.Export(ch)
 	}
 
-	log.Debug("Collecting Sharding Status")
-	shardingStatus := mongos.GetShardingStatus(client)
-	if shardingStatus != nil {
-		shardingStatus.Export(ch)
+	if !exporter.Opts.SuppressCollectShardingStatus {
+		log.Debug("Collecting Sharding Status")
+		shardingStatus := mongos.GetShardingStatus(client)
+		if shardingStatus != nil {
+			shardingStatus.Export(ch)
+		}
 	}
 
 	if exporter.Opts.CollectDatabaseMetrics {
